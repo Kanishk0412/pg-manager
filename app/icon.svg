@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16" />
+      <stop offset="50%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#022c22" />
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Rounded App Icon Background -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+  <rect width="504" height="504" x="4" y="4" rx="124" fill="none" stroke="#10b981" stroke-width="4" stroke-opacity="0.3" />
+
+  <!-- Outer Glow Ring -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="url(#emeraldGrad)" stroke-width="1.5" opacity="0.15" />
+
+  <!-- Modern Building & Bed Hybrid Icon -->
+  <g transform="translate(116, 100)">
+    <!-- Main Building Body -->
+    <path d="M40,290 V70 C40,47.9 57.9,30 80,30 H200 C222.1,30 240,47.9 240,70 V290 H40 Z" fill="#1e293b" stroke="url(#emeraldGrad)" stroke-width="12" filter="url(#glow)" />
+    
+    <!-- Building Windows (Grid of Rooms) -->
+    <rect x="75" y="70" width="35" height="35" rx="8" fill="url(#emeraldGrad)" opacity="0.9" />
+    <rect x="170" y="70" width="35" height="35" rx="8" fill="url(#cyanGrad)" opacity="0.9" />
+    
+    <rect x="75" y="130" width="35" height="35" rx="8" fill="url(#cyanGrad)" opacity="0.9" />
+    <rect x="170" y="130" width="35" height="35" rx="8" fill="url(#emeraldGrad)" opacity="0.9" />
+
+    <!-- Basement / Entrance Arch -->
+    <path d="M110,290 V230 C110,213.4 123.4,200 140,200 C156.6,200 170,213.4 170,230 V290 H110 Z" fill="#0f172a" stroke="url(#emeraldGrad)" stroke-width="8" />
+
+    <!-- Bed Symbol Inside Basement/Lower Level -->
+    <path d="M125,270 H155 M125,260 H155 M125,270 V255 M155,270 V255" stroke="#34d399" stroke-width="4" stroke-linecap="round" />
+
+    <!-- Roof Crown Accent -->
+    <path d="M80,30 L140,5 L200,30" fill="none" stroke="url(#emeraldGrad)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+
+  <!-- Bottom Badge Glow -->
+  <circle cx="256" cy="410" r="12" fill="#10b981" filter="url(#glow)" />
+</svg>

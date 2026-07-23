@@ -1,0 +1,455 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Organization {
+  id                     String      @id @default(uuid())
+  name                   String
+  slug                   String      @unique
+  owner_user_id          String?
+  plan                   String      @default("pro") // free | starter | pro
+  status                 String      @default("active") // active | suspended | trial
+  trial_ends_at          DateTime?
+  max_properties         Int         @default(5)
+  max_rooms              Int         @default(100)
+  max_users              Int         @default(10)
+  whatsapp_monthly_quota Int         @default(1000)
+  created_at             DateTime    @default(now())
+  updated_at             DateTime    @updatedAt
+  deleted_at             DateTime?
+
+  users             User[]
+  properties        Property[]
+  charge_heads      ChargeHead[]
+  rooms             Room[]
+  beds              Bed[]
+  tenants           Tenant[]
+  allotments        Allotment[]
+  meter_readings    MeterReading[]
+  invoices          Invoice[]
+  payments          Payment[]
+  notification_logs NotificationLog[]
+  message_templates MessageTemplate[]
+  audit_logs        AuditLog[]
+}
+
+model User {
+  id              String      @id @default(uuid())
+  organization_id String?
+  full_name       String
+  email           String      @unique
+  phone           String?
+  password_hash   String
+  role            String      @default("manager") // super_admin | owner | manager | accountant | viewer
+  status          String      @default("active") // active | invited | disabled
+  last_login_at   DateTime?
+  avatar_url      String?
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+  deleted_at      DateTime?
+
+  organization Organization?        @relation(fields: [organization_id], references: [id])
+  property_access UserPropertyAccess[]
+}
+
+model UserPropertyAccess {
+  id          String   @id @default(uuid())
+  user_id     String
+  property_id String
+  created_at  DateTime @default(now())
+
+  user     User     @relation(fields: [user_id], references: [id])
+  property Property @relation(fields: [property_id], references: [id])
+
+  @@unique([user_id, property_id])
+}
+
+model Property {
+  id              String      @id @default(uuid())
+  organization_id String
+  name            String
+  legal_name      String?
+  code            String      // e.g. RIDDHI
+  address_line1   String?
+  address_line2   String?
+  city            String?
+  state           String?
+  pincode         String?
+  country         String?     @default("India")
+  phone           String?
+  email           String?
+  gstin           String?
+  logo_url        String?
+  brand_color     String      @default("#16a34a")
+  currency_code   String      @default("INR")
+  currency_symbol String      @default("₹")
+  timezone        String      @default("Asia/Kolkata")
+  locale          String      @default("en-IN")
+  status          String      @default("active") // active | inactive
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+  deleted_at      DateTime?
+
+  organization Organization        @relation(fields: [organization_id], references: [id])
+  settings     PropertySettings?
+  user_access  UserPropertyAccess[]
+  charge_heads ChargeHead[]
+  rooms        Room[]
+  tenants      Tenant[]
+  allotments   Allotment[]
+  meter_readings MeterReading[]
+  invoices     Invoice[]
+  payments     Payment[]
+  notification_logs NotificationLog[]
+  message_templates MessageTemplate[]
+}
+
+model PropertySettings {
+  id                        String   @id @default(uuid())
+  property_id               String   @unique
+  electricity_rate_per_unit Float    @default(10.0)
+  electricity_split_mode    String   @default("equal") // equal | by_days_occupied | primary_tenant | room_level
+  bill_generation_day       Int      @default(1)
+  payment_due_day           Int      @default(5)
+  prorate_partial_month     Boolean  @default(true)
+  late_fee_enabled          Boolean  @default(true)
+  late_fee_type             String   @default("flat") // flat | percent
+  late_fee_amount           Float    @default(200.0)
+  late_fee_grace_days       Int      @default(5)
+  tax_enabled               Boolean  @default(false)
+  tax_name                  String?  @default("GST")
+  tax_percent               Float?   @default(0.0)
+  tax_applies_to            String?  @default("all")
+  invoice_prefix            String   @default("INV")
+  invoice_next_number       Int      @default(1)
+  receipt_prefix            String   @default("RCP")
+  receipt_next_number       Int      @default(1)
+  notice_period_days        Int      @default(30)
+  security_deposit_months   Int      @default(1)
+  amenities_list            String?  // JSON string
+  sharing_types             String?  // JSON string
+  floor_labels              String?  // JSON string
+  whatsapp_enabled          Boolean  @default(false)
+  whatsapp_provider         String?  @default("mock")
+  whatsapp_credentials      String?  // encrypted JSON
+  reminder_schedule_days    String?  @default("[-3, 0, 3, 7]")
+  quiet_hours_start         String?  @default("20:00")
+  quiet_hours_end           String?  @default("09:00")
+  created_at                DateTime @default(now())
+  updated_at                DateTime @updatedAt
+
+  property Property @relation(fields: [property_id], references: [id])
+}
+
+model ChargeHead {
+  id              String    @id @default(uuid())
+  organization_id String
+  property_id     String
+  name            String
+  code            String
+  type            String    // recurring_monthly | one_time | usage_based
+  default_amount  Float     @default(0.0)
+  applies_to      String    @default("per_bed") // per_bed | per_room | per_tenant
+  is_taxable      Boolean   @default(false)
+  is_active       Boolean   @default(true)
+  sort_order      Int       @default(0)
+  is_system       Boolean   @default(false)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  deleted_at      DateTime?
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  property     Property     @relation(fields: [property_id], references: [id])
+  invoice_line_items InvoiceLineItem[]
+}
+
+model Room {
+  id                 String    @id @default(uuid())
+  organization_id    String
+  property_id        String
+  room_number        String
+  floor              String    // e.g. Ground, 1st, 2nd
+  sharing_type       String    // Single, Double, Triple
+  capacity           Int       @default(1)
+  rent_mode          String    @default("per_bed") // per_bed | per_room
+  default_rent       Float     @default(0.0)
+  amenities          String?   // JSON array
+  has_separate_meter Boolean   @default(true)
+  meter_number       String?
+  is_active          Boolean   @default(true)
+  notes              String?
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+  deleted_at         DateTime?
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  property     Property     @relation(fields: [property_id], references: [id])
+  beds         Bed[]
+  allotments   Allotment[]
+  meter_readings MeterReading[]
+  invoices     Invoice[]
+}
+
+model Bed {
+  id                   String    @id @default(uuid())
+  organization_id      String
+  room_id              String
+  bed_label            String    // A, B, C...
+  status               String    @default("vacant") // vacant | occupied | reserved | blocked | under_maintenance
+  current_allotment_id String?
+  is_active            Boolean   @default(true)
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+  deleted_at           DateTime?
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  room         Room         @relation(fields: [room_id], references: [id])
+  allotments   Allotment[]
+  invoices     Invoice[]
+}
+
+model Tenant {
+  id                        String    @id @default(uuid())
+  organization_id           String
+  property_id               String
+  full_name                 String
+  phone                     String    // E.164
+  alternate_phone           String?
+  email                     String?
+  date_of_birth             String?
+  gender                    String?
+  photo_url                 String?
+  permanent_address         String?
+  city                      String?
+  occupation                String?
+  company_or_college        String?
+  id_proof_type             String?   // aadhaar | pan | passport | driving_license | voter_id | other
+  id_proof_number           String?
+  id_proof_file_url         String?
+  emergency_contact_name    String?
+  emergency_contact_phone   String?
+  emergency_contact_relation String?
+  status                    String    @default("active") // upcoming | active | on_notice | vacated | blacklisted
+  whatsapp_opt_in           Boolean   @default(true)
+  notes                     String?
+  created_at                DateTime  @default(now())
+  updated_at                DateTime  @updatedAt
+  deleted_at                DateTime?
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  property     Property     @relation(fields: [property_id], references: [id])
+  allotments   Allotment[]
+  invoices     Invoice[]
+  payments     Payment[]
+  notification_logs NotificationLog[]
+}
+
+model Allotment {
+  id                         String    @id @default(uuid())
+  organization_id            String
+  property_id                String
+  tenant_id                  String
+  room_id                    String
+  bed_id                     String
+  status                     String    @default("active") // reserved | active | on_notice | vacated | cancelled
+  booking_date               DateTime  @default(now())
+  move_in_date               DateTime
+  expected_move_out_date     DateTime?
+  notice_given_date          DateTime?
+  actual_move_out_date       DateTime?
+  agreed_rent                Float
+  security_deposit_amount    Float     @default(0.0)
+  security_deposit_paid      Float     @default(0.0)
+  security_deposit_refunded  Float     @default(0.0)
+  security_deposit_deductions Float    @default(0.0)
+  booking_advance_amount     Float     @default(0.0)
+  recurring_charges          String?   // JSON string
+  agreement_file_url         String?
+  notes                      String?
+  created_at                 DateTime  @default(now())
+  updated_at                 DateTime  @updatedAt
+  deleted_at                 DateTime?
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  property     Property     @relation(fields: [property_id], references: [id])
+  tenant       Tenant       @relation(fields: [tenant_id], references: [id])
+  room         Room         @relation(fields: [room_id], references: [id])
+  bed          Bed          @relation(fields: [bed_id], references: [id])
+  invoices     Invoice[]
+}
+
+model MeterReading {
+  id                  String    @id @default(uuid())
+  organization_id     String
+  property_id         String
+  room_id             String
+  billing_month       DateTime  // First of the month
+  previous_reading    Float     @default(0.0)
+  current_reading     Float
+  units_consumed      Float
+  rate_per_unit       Float
+  amount              Float
+  reading_date        DateTime  @default(now())
+  reading_photo_url   String?
+  entered_by_user_id  String?
+  notes               String?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+  deleted_at          DateTime?
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  property     Property     @relation(fields: [property_id], references: [id])
+  room         Room         @relation(fields: [room_id], references: [id])
+
+  @@unique([room_id, billing_month])
+}
+
+model Invoice {
+  id              String    @id @default(uuid())
+  organization_id String
+  property_id     String
+  invoice_number  String
+  tenant_id       String
+  allotment_id    String
+  room_id         String
+  bed_id          String
+  billing_month   DateTime
+  period_start    DateTime
+  period_end      DateTime
+  issue_date      DateTime  @default(now())
+  due_date        DateTime
+  subtotal        Float
+  discount_amount Float     @default(0.0)
+  discount_reason String?
+  tax_amount      Float     @default(0.0)
+  late_fee_amount Float     @default(0.0)
+  total_amount    Float
+  amount_paid     Float     @default(0.0)
+  balance_due     Float
+  status          String    @default("draft") // draft | sent | partially_paid | paid | overdue | cancelled | written_off
+  pdf_url         String?
+  notes           String?
+  sent_at         DateTime?
+  generated_by    String    @default("auto") // auto | manual
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  deleted_at      DateTime?
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  property     Property     @relation(fields: [property_id], references: [id])
+  tenant       Tenant       @relation(fields: [tenant_id], references: [id])
+  allotment    Allotment    @relation(fields: [allotment_id], references: [id])
+  room         Room         @relation(fields: [room_id], references: [id])
+  bed          Bed          @relation(fields: [bed_id], references: [id])
+  line_items   InvoiceLineItem[]
+  payments     Payment[]
+}
+
+model InvoiceLineItem {
+  id             String   @id @default(uuid())
+  invoice_id     String
+  charge_head_id String?
+  description    String
+  quantity       Float    @default(1.0)
+  unit_price     Float
+  amount         Float
+  meta           String?  // JSON string
+  sort_order     Int      @default(0)
+  created_at     DateTime @default(now())
+
+  invoice     Invoice     @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+  charge_head ChargeHead? @relation(fields: [charge_head_id], references: [id])
+}
+
+model Payment {
+  id                  String    @id @default(uuid())
+  organization_id     String
+  property_id         String
+  receipt_number      String
+  tenant_id           String
+  invoice_id          String?
+  amount              Float
+  payment_method      String    @default("upi") // cash | upi | bank_transfer | card | cheque | other
+  reference_number    String?
+  paid_at             DateTime  @default(now())
+  recorded_by_user_id String?
+  proof_file_url      String?
+  receipt_pdf_url     String?
+  status              String    @default("recorded") // recorded | reversed
+  reversal_reason     String?
+  notes               String?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+  deleted_at          DateTime?
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  property     Property     @relation(fields: [property_id], references: [id])
+  tenant       Tenant       @relation(fields: [tenant_id], references: [id])
+  invoice      Invoice?     @relation(fields: [invoice_id], references: [id])
+}
+
+model NotificationLog {
+  id                  String    @id @default(uuid())
+  organization_id     String
+  property_id         String
+  tenant_id           String?
+  channel             String    @default("whatsapp") // whatsapp | sms | email
+  event_type          String    // invoice_created | payment_reminder | payment_receipt | overdue_notice | welcome | custom
+  template_name       String?
+  recipient_phone     String
+  message_body        String
+  media_url           String?
+  provider_message_id String?
+  status              String    @default("queued") // queued | sent | delivered | read | failed
+  error_code          String?
+  error_message       String?
+  cost                Float?    @default(0.0)
+  related_type        String?
+  related_id          String?
+  scheduled_for       DateTime?
+  sent_at             DateTime?
+  retry_count         Int       @default(0)
+  created_at          DateTime  @default(now())
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  property     Property     @relation(fields: [property_id], references: [id])
+  tenant       Tenant?      @relation(fields: [tenant_id], references: [id])
+}
+
+model MessageTemplate {
+  id                     String   @id @default(uuid())
+  organization_id        String
+  property_id            String
+  event_type             String
+  channel                String   @default("whatsapp")
+  provider_template_name String
+  body_text              String
+  variables              String?  // JSON string
+  is_active              Boolean  @default(true)
+  created_at             DateTime @default(now())
+  updated_at             DateTime @updatedAt
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  property     Property     @relation(fields: [property_id], references: [id])
+}
+
+model AuditLog {
+  id              String   @id @default(uuid())
+  organization_id String
+  user_id         String?
+  action          String
+  entity_type     String
+  entity_id       String
+  before          String?  // JSON string
+  after           String?  // JSON string
+  ip_address      String?
+  user_agent      String?
+  created_at      DateTime @default(now())
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+}

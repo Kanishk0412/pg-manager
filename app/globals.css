@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  /* TeamHub Dual Green & Blue Color Palette */
+  --teamhub-emerald: #10b981;
+  --teamhub-emerald-glow: rgba(16, 185, 129, 0.25);
+  --teamhub-blue: #2563eb;
+  --teamhub-blue-glow: rgba(37, 99, 235, 0.25);
+  --teamhub-indigo: #4f46e5;
+  --bg-dark: #070b14;
+  --bg-card: rgba(15, 23, 42, 0.85);
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-dark);
+  color: #f8fafc;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+/* TeamHub Gradient & Glassmorphism Utilities */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.85) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 12px 30px -10px rgba(16, 185, 129, 0.25);
+  transform: translateY(-2px);
+}
+
+/* TeamHub Green & Blue Dual Gradient Text */
+.text-gradient-teamhub {
+  background: linear-gradient(135deg, #34d399 0%, #38bdf8 50%, #2563eb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-emerald {
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* TeamHub Action Buttons */
+.btn-teamhub {
+  background: linear-gradient(135deg, #10b981 0%, #2563eb 100%);
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.35);
+  transition: all 0.2s ease;
+}
+
+.btn-teamhub:hover {
+  background: linear-gradient(135deg, #059669 0%, #1d4ed8 100%);
+  box-shadow: 0 6px 25px rgba(37, 99, 235, 0.45);
+  transform: translateY(-1px);
+}
+
+.btn-blue {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
+  transition: all 0.2s ease;
+}
+
+.btn-blue:hover {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 6px 25px rgba(37, 99, 235, 0.45);
+  transform: translateY(-1px);
+}
+
+/* TeamHub Table Styles */
+.teamhub-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+.teamhub-table tr {
+  background: rgba(15, 23, 42, 0.75);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.teamhub-table tr:hover {
+  background: rgba(30, 41, 59, 0.8);
+}
+
+.teamhub-table td, .teamhub-table th {
+  padding: 12px 16px;
+}
+
+.teamhub-table td:first-child {
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+
+.teamhub-table td:last-child {
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.8);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.6);
+}

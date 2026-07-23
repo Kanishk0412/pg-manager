@@ -1,0 +1,18 @@
+{
+  "name": "PG Manager - Co-Living & Property Management",
+  "short_name": "PG Manager",
+  "description": "Smart PG, Hostel & Co-Living Management Web App",
+  "start_url": "/rooms",
+  "display": "standalone",
+  "background_color": "#070b14",
+  "theme_color": "#0038FF",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
