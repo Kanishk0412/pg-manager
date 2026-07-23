@@ -76,16 +76,18 @@ export async function GET(request: Request) {
     const query = searchParams.get("query") || "";
 
     let tenants: any[] = [];
-    const prisma = getDb();
+    let hasQueriedDb = false;
 
     try {
+      const prisma = getDb();
       if (prisma) {
-        // Query database for all tenants matching org or property
+        const whereClause: any = { deleted_at: null };
+        if (status && status !== "all") {
+          whereClause.status = status;
+        }
+
         const dbTenants = await prisma.tenant.findMany({
-          where: {
-            deleted_at: null,
-            ...(status !== "all" ? { status } : {}),
-          },
+          where: whereClause,
           include: {
             allotments: {
               where: { deleted_at: null },
@@ -96,16 +98,15 @@ export async function GET(request: Request) {
           orderBy: { created_at: "desc" },
         });
 
-        if (dbTenants && dbTenants.length > 0) {
-          tenants = dbTenants;
-        }
+        tenants = dbTenants || [];
+        hasQueriedDb = true;
       }
     } catch (e) {
       console.warn("DB getTenants warning:", e);
     }
 
-    // Fallback to DEMO_TENANTS if DB is unseeded or unreachable
-    if (!tenants || tenants.length === 0) {
+    // Only fallback to DEMO_TENANTS if DB connection failed entirely
+    if (!hasQueriedDb) {
       tenants = DEMO_TENANTS;
     }
 
@@ -165,12 +166,11 @@ export async function POST(request: Request) {
     }
 
     let tenant: any = null;
-    const prisma = getDb();
 
     try {
+      const prisma = getDb();
       if (prisma) {
-        // Resolve real organization & property ID from Supabase
-        const property = await prisma.property.findFirst() || await prisma.property.findFirst();
+        const property = await prisma.property.findFirst();
         const orgId = property?.organization_id || session.organizationId || "org-riddhi-residency";
         const propId = property?.id || "prop-riddhi";
 
@@ -195,7 +195,7 @@ export async function POST(request: Request) {
         });
       }
     } catch (dbErr) {
-      console.warn("Prisma tenant creation warning:", dbErr);
+      console.warn("Prisma tenant creation error:", dbErr);
     }
 
     if (!tenant) {
