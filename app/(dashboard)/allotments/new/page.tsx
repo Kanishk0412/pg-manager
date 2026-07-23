@@ -89,7 +89,14 @@ function AssignBedForm() {
         }),
       });
 
-      const json = await res.json();
+      const text = await res.text();
+      let json: any = {};
+      try {
+        json = text ? JSON.parse(text) : {};
+      } catch (parseErr) {
+        throw new Error("Server returned an invalid response. Please try again.");
+      }
+
       if (!res.ok || !json.success) {
         throw new Error(json.error?.message || "Failed to allot bed");
       }

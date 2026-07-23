@@ -75,10 +75,11 @@ export async function GET(request: Request) {
     const status = searchParams.get("status") || "all";
     const query = searchParams.get("query") || "";
 
-    const scoped = new ScopedDb(session.organizationId);
+    const orgId = session.organizationId || "org-riddhi-residency";
     let tenants: any[] = [];
 
     try {
+      const scoped = new ScopedDb(orgId);
       const properties = await scoped.getProperties();
       const targetPropId = propertyId || properties[0]?.id;
 
@@ -89,12 +90,10 @@ export async function GET(request: Request) {
       console.warn("DB getTenants warning:", e);
     }
 
-    // Fallback to DEMO_TENANTS if DB is unseeded or running on serverless
     if (!tenants || tenants.length === 0) {
       tenants = DEMO_TENANTS;
     }
 
-    // Apply search query filter if present
     if (query) {
       const q = query.toLowerCase();
       tenants = tenants.filter(
@@ -123,7 +122,7 @@ export async function POST(request: Request) {
   try {
     const session = await getSession();
     if (!session) {
-      return NextResponse.json({ success: false, error: { message: "Unauthorized" } }, { status: 401 });
+      return NextResponse.json({ success: false, error: { message: "Unauthorized. Please log in." } }, { status: 401 });
     }
 
     const body = await request.json();
@@ -149,15 +148,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const scoped = new ScopedDb(session.organizationId);
+    const orgId = session.organizationId || "org-riddhi-residency";
     let targetPropId = "";
     try {
+      const scoped = new ScopedDb(orgId);
       const properties = await scoped.getProperties();
       if (properties.length > 0) {
         targetPropId = properties[0].id;
       }
     } catch (e) {
-      console.warn("DB property query error:", e);
+      console.warn("DB property query warning:", e);
     }
 
     let tenant: any = null;
@@ -167,7 +167,7 @@ export async function POST(request: Request) {
       if (prisma && targetPropId) {
         tenant = await prisma.tenant.create({
           data: {
-            organization_id: session.organizationId,
+            organization_id: orgId,
             property_id: targetPropId,
             full_name: fullName,
             phone: phone,
@@ -189,11 +189,10 @@ export async function POST(request: Request) {
       console.warn("Prisma tenant creation warning:", dbErr);
     }
 
-    // In-memory fallback tenant object if DB is read-only or uninitialized
     if (!tenant) {
       tenant = {
         id: `tenant-${Date.now()}`,
-        organization_id: session.organizationId,
+        organization_id: orgId,
         property_id: targetPropId || "demo-prop",
         full_name: fullName,
         phone: phone,
@@ -219,7 +218,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("POST /api/v1/tenants error:", error);
     return NextResponse.json(
-      { success: false, error: { message: error.message || "Failed to create tenant" } },
+      { success: false, error: { message: error?.message || "Failed to register tenant" } },
       { status: 500 }
     );
   }
