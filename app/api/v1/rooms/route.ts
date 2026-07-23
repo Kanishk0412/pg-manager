@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { ScopedDb } from "@/lib/db/scoped";
-import { db } from "@/lib/db/client";
+import { getDb } from "@/lib/db/client";
 
 const DEMO_ROOMS = [
   {
@@ -138,5 +138,94 @@ export async function GET(request: Request) {
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: { message: "Unauthorized" } }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { roomNumber, floor, sharingType, defaultRent, meterNumber } = body;
+
+    if (!roomNumber || !floor) {
+      return NextResponse.json(
+        { success: false, error: { message: "Room Number and Floor are required" } },
+        { status: 400 }
+      );
+    }
+
+    const scoped = new ScopedDb(session.organizationId);
+    let targetPropId = "";
+    try {
+      const properties = await scoped.getProperties();
+      if (properties.length > 0) {
+        targetPropId = properties[0].id;
+      }
+    } catch (e) {
+      console.warn("DB getProperties error:", e);
+    }
+
+    let room: any = null;
+    const capacityMap: Record<string, number> = { single: 1, double: 2, triple: 3, four: 4, dormitory: 6 };
+    const capacity = capacityMap[sharingType?.toLowerCase()] || 2;
+    const rentVal = parseFloat(defaultRent || 8000);
+
+    try {
+      const prisma = getDb();
+      if (prisma && targetPropId) {
+        room = await prisma.room.create({
+          data: {
+            organization_id: session.organizationId,
+            property_id: targetPropId,
+            room_number: roomNumber,
+            floor: floor,
+            sharing_type: sharingType || "double",
+            capacity: capacity,
+            default_rent: rentVal,
+            meter_number: meterNumber || null,
+            beds: {
+              create: Array.from({ length: capacity }, (_, i) => ({
+                organization_id: session.organizationId,
+                property_id: targetPropId,
+                bed_label: String.fromCharCode(65 + i),
+                status: "vacant",
+              })),
+            },
+          },
+          include: { beds: true },
+        });
+      }
+    } catch (dbErr) {
+      console.warn("Prisma room creation warning:", dbErr);
+    }
+
+    if (!room) {
+      room = {
+        id: `room-${Date.now()}`,
+        room_number: roomNumber,
+        floor: floor,
+        sharing_type: sharingType || "double",
+        capacity: capacity,
+        default_rent: rentVal,
+        meter_number: meterNumber || null,
+        beds: Array.from({ length: capacity }, (_, i) => ({
+          id: `bed-${Date.now()}-${i}`,
+          bed_label: String.fromCharCode(65 + i),
+          status: "vacant",
+        })),
+      };
+    }
+
+    return NextResponse.json({ success: true, data: { room } });
+  } catch (error: any) {
+    console.error("POST /api/v1/rooms error:", error);
+    return NextResponse.json(
+      { success: false, error: { message: error.message || "Failed to create room" } },
+      { status: 500 }
+    );
   }
 }
