@@ -6,28 +6,22 @@ import { signToken } from "@/lib/auth/session";
 // Demo Fallback Users for Serverless Vercel Deployments
 const DEMO_USERS: Record<string, any> = {
   "owner@riddhi.com": {
-    id: "demo-owner-riddhi",
     email: "owner@riddhi.com",
     fullName: "Ramesh Sharma (Owner)",
     role: "owner",
-    organizationId: "org-riddhi-residency",
-    orgName: "Riddhi Residency",
+    orgSlug: "riddhi-residency",
   },
   "manager@riddhi.com": {
-    id: "demo-manager-riddhi",
     email: "manager@riddhi.com",
     fullName: "Suresh Kumar (Manager)",
     role: "manager",
-    organizationId: "org-riddhi-residency",
-    orgName: "Riddhi Residency",
+    orgSlug: "riddhi-residency",
   },
   "owner@apex.com": {
-    id: "demo-owner-apex",
     email: "owner@apex.com",
     fullName: "Anita Verma (Apex)",
     role: "owner",
-    organizationId: "org-apex-coliving",
-    orgName: "Apex Co-Living",
+    orgSlug: "apex-coliving",
   },
 };
 
@@ -75,16 +69,41 @@ export async function POST(request: Request) {
               // Ignore DB write errors in read-only lambdas
             }
           }
+        } else {
+          // If demo user email matches, find actual organization ID in database
+          const demoDef = DEMO_USERS[cleanEmail];
+          if (demoDef && password === "password123") {
+            const org = await prisma.organization.findFirst({
+              where: { slug: demoDef.orgSlug },
+            }) || await prisma.organization.findFirst();
+
+            userPayload = {
+              id: `user-${cleanEmail}`,
+              email: cleanEmail,
+              fullName: demoDef.fullName,
+              role: demoDef.role,
+              organizationId: org?.id || "org-riddhi-residency",
+              orgName: org?.name || "Riddhi Residency",
+            };
+          }
         }
       }
     } catch (dbErr) {
       console.warn("DB lookup error on login:", dbErr);
     }
 
-    // 2. Demo fallback credentials (guaranteed working on Vercel live link)
+    // 2. Pure static fallback if DB is unreachable
     if (!userPayload && DEMO_USERS[cleanEmail]) {
       if (password === "password123") {
-        userPayload = DEMO_USERS[cleanEmail];
+        const d = DEMO_USERS[cleanEmail];
+        userPayload = {
+          id: `demo-${cleanEmail}`,
+          email: cleanEmail,
+          fullName: d.fullName,
+          role: d.role,
+          organizationId: "org-riddhi-residency",
+          orgName: "Riddhi Residency",
+        };
       }
     }
 

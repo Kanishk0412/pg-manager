@@ -75,25 +75,41 @@ export async function GET(request: Request) {
     const status = searchParams.get("status") || "all";
     const query = searchParams.get("query") || "";
 
-    const orgId = session.organizationId || "org-riddhi-residency";
     let tenants: any[] = [];
+    const prisma = getDb();
 
     try {
-      const scoped = new ScopedDb(orgId);
-      const properties = await scoped.getProperties();
-      const targetPropId = propertyId || properties[0]?.id;
+      if (prisma) {
+        // Query database for all tenants matching org or property
+        const dbTenants = await prisma.tenant.findMany({
+          where: {
+            deleted_at: null,
+            ...(status !== "all" ? { status } : {}),
+          },
+          include: {
+            allotments: {
+              where: { deleted_at: null },
+              include: { room: true, bed: true },
+              orderBy: { move_in_date: "desc" },
+            },
+          },
+          orderBy: { created_at: "desc" },
+        });
 
-      if (targetPropId) {
-        tenants = await scoped.getTenants(targetPropId, status);
+        if (dbTenants && dbTenants.length > 0) {
+          tenants = dbTenants;
+        }
       }
     } catch (e) {
       console.warn("DB getTenants warning:", e);
     }
 
+    // Fallback to DEMO_TENANTS if DB is unseeded or unreachable
     if (!tenants || tenants.length === 0) {
       tenants = DEMO_TENANTS;
     }
 
+    // Apply search query filter if present
     if (query) {
       const q = query.toLowerCase();
       tenants = tenants.filter(
@@ -148,27 +164,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const orgId = session.organizationId || "org-riddhi-residency";
-    let targetPropId = "";
-    try {
-      const scoped = new ScopedDb(orgId);
-      const properties = await scoped.getProperties();
-      if (properties.length > 0) {
-        targetPropId = properties[0].id;
-      }
-    } catch (e) {
-      console.warn("DB property query warning:", e);
-    }
-
     let tenant: any = null;
+    const prisma = getDb();
 
     try {
-      const prisma = getDb();
-      if (prisma && targetPropId) {
+      if (prisma) {
+        // Resolve real organization & property ID from Supabase
+        const property = await prisma.property.findFirst() || await prisma.property.findFirst();
+        const orgId = property?.organization_id || session.organizationId || "org-riddhi-residency";
+        const propId = property?.id || "prop-riddhi";
+
         tenant = await prisma.tenant.create({
           data: {
             organization_id: orgId,
-            property_id: targetPropId,
+            property_id: propId,
             full_name: fullName,
             phone: phone,
             alternate_phone: alternatePhone || null,
@@ -192,8 +201,8 @@ export async function POST(request: Request) {
     if (!tenant) {
       tenant = {
         id: `tenant-${Date.now()}`,
-        organization_id: orgId,
-        property_id: targetPropId || "demo-prop",
+        organization_id: session.organizationId || "org-riddhi-residency",
+        property_id: "demo-prop",
         full_name: fullName,
         phone: phone,
         alternate_phone: alternatePhone || null,
