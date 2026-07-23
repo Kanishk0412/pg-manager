@@ -51,8 +51,8 @@ export async function GET(request: Request) {
     let reservedBeds = 0;
     let blockedBeds = 0;
 
-    rooms.forEach((room) => {
-      room.beds.forEach((bed) => {
+    rooms.forEach((room: any) => {
+      (room.beds || []).forEach((bed: any) => {
         totalBeds++;
         if (bed.status === "occupied") occupiedBeds++;
         else if (bed.status === "reserved") reservedBeds++;
