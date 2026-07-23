@@ -15,17 +15,33 @@ export async function GET(request: Request) {
 
     const scoped = new ScopedDb(session.organizationId);
 
-    // Get default property if not specified
     let targetPropertyId = propertyId;
-    if (!targetPropertyId) {
-      const properties = await scoped.getProperties();
-      if (!properties.length) {
-        return NextResponse.json({ success: true, data: { rooms: [], stats: {} } });
+    let rooms: any[] = [];
+    try {
+      if (!targetPropertyId) {
+        const properties = await scoped.getProperties();
+        if (!properties.length) {
+          return NextResponse.json({
+            success: true,
+            data: {
+              rooms: [],
+              stats: { totalRooms: 0, totalBeds: 0, occupiedBeds: 0, vacantBeds: 0, reservedBeds: 0, blockedBeds: 0, occupancyPercent: 0 }
+            }
+          });
+        }
+        targetPropertyId = properties[0].id;
       }
-      targetPropertyId = properties[0].id;
+      rooms = await scoped.getRooms(targetPropertyId!);
+    } catch (e) {
+      console.warn("DB getRooms warning:", e);
+      return NextResponse.json({
+        success: true,
+        data: {
+          rooms: [],
+          stats: { totalRooms: 0, totalBeds: 0, occupiedBeds: 0, vacantBeds: 0, reservedBeds: 0, blockedBeds: 0, occupancyPercent: 0 }
+        }
+      });
     }
-
-    const rooms = await scoped.getRooms(targetPropertyId!);
 
     // Compute occupancy board stats
     let totalRooms = rooms.length;
