@@ -1,60 +1,51 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <!-- Background gradient - deep vibrant blue to indigo -->
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#4F46E5"/>
-      <stop offset="50%" stop-color="#6366F1"/>
-      <stop offset="100%" stop-color="#7C3AED"/>
+    <!-- Ultra Vibrant Neon Gradient: Emerald -> Cyan -> Electric Blue -->
+    <linearGradient id="pgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="40%" stop-color="#10B981"/>
+      <stop offset="75%" stop-color="#06B6D4"/>
+      <stop offset="100%" stop-color="#2563EB"/>
     </linearGradient>
-    <!-- White-gold accent for the key/home element -->
-    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="100%" stop-color="#E0E7FF"/>
+
+    <!-- Glossy Highlight Overlay -->
+    <linearGradient id="gloss" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.35"/>
+      <stop offset="40%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.2"/>
     </linearGradient>
-    <!-- Subtle inner shadow -->
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
-      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.25"/>
+
+    <!-- Hard High-Contrast Drop Shadow for 16px Tab Scalability -->
+    <filter id="iconShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#022C22" flood-opacity="0.45"/>
     </filter>
   </defs>
 
-  <!-- Rounded square background -->
-  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <!-- Subtle inner border -->
-  <rect width="500" height="500" x="6" y="6" rx="106" fill="none" stroke="#fff" stroke-width="2" stroke-opacity="0.12"/>
+  <!-- Base Squircle with Neon Emerald/Cyan Gradient -->
+  <rect width="512" height="512" rx="140" fill="url(#pgGradient)"/>
 
-  <!-- Main icon group - Building with "PG" lettermark -->
-  <g filter="url(#shadow)">
-    <!-- Building silhouette -->
-    <path d="M136,390 V175 C136,155 152,140 172,140 H340 C360,140 376,155 376,175 V390 Z"
-          fill="#fff" fill-opacity="0.15" stroke="url(#accent)" stroke-width="8" stroke-linejoin="round"/>
+  <!-- Glossy Top Shine -->
+  <rect width="512" height="512" rx="140" fill="url(#gloss)"/>
 
-    <!-- Roof / triangle top -->
-    <path d="M120,148 L256,72 L392,148" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-    <!-- Chimney -->
-    <rect x="320" y="82" width="22" height="50" rx="4" fill="#fff" fill-opacity="0.7"/>
+  <!-- Bold Crisp White Outer Ring -->
+  <rect width="492" height="492" x="10" y="10" rx="130" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-opacity="0.35"/>
 
-    <!-- Window row 1 -->
-    <rect x="176" y="178" width="44" height="38" rx="8" fill="#fff" fill-opacity="0.85"/>
-    <rect x="292" y="178" width="44" height="38" rx="8" fill="#fff" fill-opacity="0.85"/>
+  <!-- ULTRA-BOLD HIGH-CONTRAST ICON: House Roof + Stylized "P" Monogram -->
+  <g filter="url(#iconShadow)" transform="translate(0, 10)">
 
-    <!-- Window row 2 -->
-    <rect x="176" y="240" width="44" height="38" rx="8" fill="#fff" fill-opacity="0.6"/>
-    <rect x="292" y="240" width="44" height="38" rx="8" fill="#fff" fill-opacity="0.6"/>
+    <!-- Roof Peak (Bold House Top) -->
+    <path d="M256,86 L396,196 C406,204 402,220 388,220 H358 V376 C358,396 342,412 322,412 H190 C170,412 154,396 154,376 V220 H124 C110,220 106,204 116,196 Z"
+          fill="#FFFFFF"/>
 
-    <!-- Door / entrance -->
-    <path d="M226,390 V322 C226,308 237,298 256,298 C275,298 286,308 286,322 V390 Z"
-          fill="#fff" fill-opacity="0.9" stroke="#fff" stroke-width="3"/>
-    <!-- Door handle -->
-    <circle cx="274" cy="348" r="5" fill="#6366F1"/>
+    <!-- Cutout: Negative Space "P" and "G" Monogram inside the House -->
+    <!-- "P" Left Loop Cutout -->
+    <path d="M214,242 H274 C298,242 314,256 314,278 C314,300 298,314 274,314 H254 V366 H214 V242 Z
+             M254,274 V282 H272 C278,282 284,278 284,278 C284,278 284,274 272,274 Z"
+          fill="url(#pgGradient)"/>
 
-    <!-- Bed icon inside bottom-left window area -->
-    <g transform="translate(176, 310)">
-      <path d="M0,28 H44 M0,18 C0,12 4,8 10,8 H34 C40,8 44,12 44,18 V28 M0,28 V22 M44,28 V22"
-            stroke="#fff" stroke-width="3.5" stroke-linecap="round" fill="none" opacity="0.5"/>
-    </g>
   </g>
 
-  <!-- "PG" text mark - bold, modern, easily readable -->
-  <text x="256" y="452" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="900"
-        font-size="52" fill="#fff" letter-spacing="8" opacity="0.9">PG</text>
+  <!-- Glowing Corner Accent Dot -->
+  <circle cx="410" cy="102" r="16" fill="#FACC15"/>
+  <circle cx="410" cy="102" r="26" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-opacity="0.8"/>
 </svg>
