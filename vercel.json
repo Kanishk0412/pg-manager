@@ -3,6 +3,10 @@
     {
       "path": "/api/v1/jobs/activate-reservations",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/v1/jobs/mark-overdue",
+      "schedule": "0 3 * * *"
     }
   ]
 }

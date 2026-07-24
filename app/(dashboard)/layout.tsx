@@ -20,7 +20,9 @@ import {
   Bell,
   Sparkles,
   SlidersHorizontal,
-  LayoutDashboard
+  LayoutDashboard,
+  Zap,
+  FileText
 } from "lucide-react";
 
 export default function DashboardLayout({
@@ -73,6 +75,8 @@ export default function DashboardLayout({
     { label: "Occupancy Board", shortLabel: "Board", href: "/rooms", icon: Grid3X3 },
     { label: "Bookings Calendar", shortLabel: "Bookings", href: "/bookings", icon: Calendar },
     { label: "Tenants Directory", shortLabel: "Tenants", href: "/tenants", icon: Users },
+    { label: "Meter Readings", shortLabel: "Electricity", href: "/electricity", icon: Zap },
+    { label: "Invoices", shortLabel: "Invoices", href: "/invoices", icon: FileText },
     { label: "Add Room / Bulk", shortLabel: "Add Room", href: "/rooms/new", icon: PlusCircle },
     { label: "Assign Bed", shortLabel: "Assign", href: "/allotments/new", icon: UserPlus },
     { label: "Property Settings", shortLabel: "Settings", href: "/settings", icon: Settings },
