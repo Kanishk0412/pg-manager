@@ -22,7 +22,8 @@ import {
   SlidersHorizontal,
   LayoutDashboard,
   Zap,
-  FileText
+  FileText,
+  CreditCard
 } from "lucide-react";
 
 export default function DashboardLayout({
@@ -77,6 +78,7 @@ export default function DashboardLayout({
     { label: "Tenants Directory", shortLabel: "Tenants", href: "/tenants", icon: Users },
     { label: "Meter Readings", shortLabel: "Electricity", href: "/electricity", icon: Zap },
     { label: "Invoices", shortLabel: "Invoices", href: "/invoices", icon: FileText },
+    { label: "Payments", shortLabel: "Payments", href: "/payments", icon: CreditCard },
     { label: "Add Room / Bulk", shortLabel: "Add Room", href: "/rooms/new", icon: PlusCircle },
     { label: "Assign Bed", shortLabel: "Assign", href: "/allotments/new", icon: UserPlus },
     { label: "Property Settings", shortLabel: "Settings", href: "/settings", icon: Settings },
