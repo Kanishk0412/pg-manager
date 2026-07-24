@@ -2,8 +2,22 @@ import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 import { db } from "../db/client";
 
-const JWT_SECRET = process.env.JWT_SECRET || "pg-manager-super-secret-key-2026";
 const COOKIE_NAME = "pgm_session";
+
+/**
+ * Resolve the JWT secret at call time. We deliberately do NOT fall back to a
+ * hardcoded value: a known secret would let anyone forge session tokens
+ * (including owner/super_admin) in any environment where JWT_SECRET is unset.
+ */
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      "JWT_SECRET environment variable is not configured. Refusing to sign/verify sessions with an insecure default."
+    );
+  }
+  return secret;
+}
 
 export interface SessionPayload {
   userId: string;
@@ -14,12 +28,12 @@ export interface SessionPayload {
 }
 
 export function signToken(payload: SessionPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: "7d" });
 }
 
 export function verifyToken(token: string): SessionPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as SessionPayload;
+    return jwt.verify(token, getJwtSecret()) as SessionPayload;
   } catch {
     return null;
   }

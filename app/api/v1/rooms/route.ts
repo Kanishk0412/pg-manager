@@ -141,6 +141,24 @@ export async function GET(request: Request) {
   }
 }
 
+// Map a sharing-type label to a bed capacity. Case-insensitive; defaults to 1.
+function capacityForSharing(sharing: string | undefined, explicit?: unknown): number {
+  const fromExplicit = typeof explicit !== "undefined" ? parseInt(String(explicit), 10) : NaN;
+  if (Number.isFinite(fromExplicit) && fromExplicit > 0) return Math.min(fromExplicit, 8);
+  const map: Record<string, number> = { single: 1, double: 2, triple: 3, four: 4, "four-sharing": 4, quad: 4, dormitory: 6, dorm: 6 };
+  return map[(sharing || "").toLowerCase()] || 1;
+}
+
+// Build the nested bed rows for a room of the given capacity (A, B, C…).
+// NOTE: Bed has no property_id column — do not add one here.
+function bedRows(organizationId: string, capacity: number) {
+  return Array.from({ length: capacity }, (_, i) => ({
+    organization_id: organizationId,
+    bed_label: String.fromCharCode(65 + i),
+    status: "vacant" as const,
+  }));
+}
+
 export async function POST(request: Request) {
   try {
     const session = await getSession();
@@ -148,77 +166,152 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: { message: "Unauthorized" } }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { roomNumber, floor, sharingType, defaultRent, meterNumber } = body;
-
-    if (!roomNumber || !floor) {
+    const prisma = getDb();
+    if (!prisma) {
       return NextResponse.json(
-        { success: false, error: { message: "Room Number and Floor are required" } },
-        { status: 400 }
+        { success: false, error: { message: "Database is not available in this environment." } },
+        { status: 503 }
       );
     }
 
+    const body = await request.json();
+    const action: string = body.action || "create_single";
+
+    // Every room must belong to a property in the caller's organization.
     const scoped = new ScopedDb(session.organizationId);
-    let targetPropId = "";
-    try {
-      const properties = await scoped.getProperties();
-      if (properties.length > 0) {
-        targetPropId = properties[0].id;
-      }
-    } catch (e) {
-      console.warn("DB getProperties error:", e);
+    const properties = await scoped.getProperties();
+    if (properties.length === 0) {
+      return NextResponse.json(
+        { success: false, error: { message: "No property found for your organization. Complete onboarding before adding rooms." } },
+        { status: 400 }
+      );
     }
+    const targetPropId = properties[0].id;
 
-    let room: any = null;
-    const capacityMap: Record<string, number> = { single: 1, double: 2, triple: 3, four: 4, dormitory: 6 };
-    const capacity = capacityMap[sharingType?.toLowerCase()] || 2;
-    const rentVal = parseFloat(defaultRent || 8000);
+    // Existing room numbers (for duplicate protection across all actions).
+    const existing = await prisma.room.findMany({
+      where: { organization_id: session.organizationId, property_id: targetPropId, deleted_at: null },
+      select: { room_number: true },
+    });
+    const taken = new Set(existing.map((r) => r.room_number.toLowerCase()));
 
-    try {
-      const prisma = getDb();
-      if (prisma && targetPropId) {
-        room = await prisma.room.create({
-          data: {
+    // ---- Bulk generate ----------------------------------------------------
+    if (action === "bulk_generate") {
+      const floors: Array<{ label: string; prefix: string }> = Array.isArray(body.floors) ? body.floors : [];
+      const roomsPerFloor = Math.max(1, Math.min(parseInt(body.roomsPerFloor, 10) || 0, 60));
+      const sharing = body.defaultSharing || "Single";
+      const rentVal = parseFloat(body.defaultRent) || 0;
+      const capacity = capacityForSharing(sharing);
+
+      if (floors.length === 0 || roomsPerFloor === 0) {
+        return NextResponse.json(
+          { success: false, error: { message: "Select at least one floor and a rooms-per-floor count." } },
+          { status: 400 }
+        );
+      }
+
+      const toCreate: any[] = [];
+      let skipped = 0;
+      for (const f of floors) {
+        const prefix = (f.prefix || f.label?.charAt(0) || "").toString();
+        for (let i = 1; i <= roomsPerFloor; i++) {
+          const roomNumber = `${prefix}${String(i).padStart(2, "0")}`;
+          if (taken.has(roomNumber.toLowerCase())) {
+            skipped++;
+            continue;
+          }
+          taken.add(roomNumber.toLowerCase());
+          toCreate.push({
             organization_id: session.organizationId,
             property_id: targetPropId,
             room_number: roomNumber,
-            floor: floor,
-            sharing_type: sharingType || "double",
-            capacity: capacity,
+            floor: f.label,
+            sharing_type: sharing,
+            capacity,
             default_rent: rentVal,
-            meter_number: meterNumber || null,
-            beds: {
-              create: Array.from({ length: capacity }, (_, i) => ({
-                organization_id: session.organizationId,
-                property_id: targetPropId,
-                bed_label: String.fromCharCode(65 + i),
-                status: "vacant",
-              })),
-            },
-          },
-          include: { beds: true },
-        });
+            meter_number: `MTR-${roomNumber}`,
+            beds: { create: bedRows(session.organizationId, capacity) },
+          });
+        }
       }
-    } catch (dbErr) {
-      console.warn("Prisma room creation warning:", dbErr);
+
+      await prisma.$transaction(toCreate.map((data) => prisma.room.create({ data })));
+
+      return NextResponse.json({ success: true, data: { count: toCreate.length, skipped } });
     }
 
-    if (!room) {
-      room = {
-        id: `room-${Date.now()}`,
-        room_number: roomNumber,
-        floor: floor,
-        sharing_type: sharingType || "double",
-        capacity: capacity,
-        default_rent: rentVal,
-        meter_number: meterNumber || null,
-        beds: Array.from({ length: capacity }, (_, i) => ({
-          id: `bed-${Date.now()}-${i}`,
-          bed_label: String.fromCharCode(65 + i),
-          status: "vacant",
-        })),
-      };
+    // ---- CSV import -------------------------------------------------------
+    if (action === "csv_import") {
+      const rows: any[] = Array.isArray(body.rows) ? body.rows : [];
+      if (rows.length === 0) {
+        return NextResponse.json({ success: false, error: { message: "No rows found in the CSV." } }, { status: 400 });
+      }
+
+      const toCreate: any[] = [];
+      let skipped = 0;
+      for (const row of rows) {
+        const roomNumber = String(row.room_number || "").trim();
+        if (!roomNumber || taken.has(roomNumber.toLowerCase())) {
+          skipped++;
+          continue;
+        }
+        taken.add(roomNumber.toLowerCase());
+        const capacity = capacityForSharing(row.sharing_type, row.capacity);
+        toCreate.push({
+          organization_id: session.organizationId,
+          property_id: targetPropId,
+          room_number: roomNumber,
+          floor: String(row.floor || "Ground").trim(),
+          sharing_type: String(row.sharing_type || "Single").trim(),
+          capacity,
+          default_rent: parseFloat(row.rent_per_bed) || 0,
+          meter_number: String(row.meter_number || `MTR-${roomNumber}`).trim(),
+          beds: { create: bedRows(session.organizationId, capacity) },
+        });
+      }
+
+      if (toCreate.length === 0) {
+        return NextResponse.json(
+          { success: false, error: { message: `All ${rows.length} rows were duplicates or invalid.` } },
+          { status: 400 }
+        );
+      }
+
+      await prisma.$transaction(toCreate.map((data) => prisma.room.create({ data })));
+      return NextResponse.json({ success: true, data: { count: toCreate.length, skipped } });
     }
+
+    // ---- Single create ----------------------------------------------------
+    const roomNumber = String(body.roomNumber || "").trim();
+    const floor = String(body.floor || "").trim();
+    if (!roomNumber || !floor) {
+      return NextResponse.json(
+        { success: false, error: { message: "Room Number and Floor are required." } },
+        { status: 400 }
+      );
+    }
+    if (taken.has(roomNumber.toLowerCase())) {
+      return NextResponse.json(
+        { success: false, error: { code: "DUPLICATE_ROOM", message: `Room ${roomNumber} already exists.`, field: "roomNumber" } },
+        { status: 409 }
+      );
+    }
+
+    const capacity = capacityForSharing(body.sharingType, body.capacity);
+    const room = await prisma.room.create({
+      data: {
+        organization_id: session.organizationId,
+        property_id: targetPropId,
+        room_number: roomNumber,
+        floor,
+        sharing_type: body.sharingType || "Single",
+        capacity,
+        default_rent: parseFloat(body.rent ?? body.defaultRent) || 0,
+        meter_number: body.meterNumber || `MTR-${roomNumber}`,
+        beds: { create: bedRows(session.organizationId, capacity) },
+      },
+      include: { beds: true },
+    });
 
     return NextResponse.json({ success: true, data: { room } });
   } catch (error: any) {

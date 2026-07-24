@@ -31,6 +31,7 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [sessionUser, setSessionUser] = useState<any>(null);
+  const [propertyName, setPropertyName] = useState("");
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
@@ -41,6 +42,7 @@ export default function DashboardLayout({
       .then((data) => {
         if (data.success) {
           setSessionUser(data.data.user);
+          setPropertyName(data.data.property?.name || data.data.organizationName || "");
         } else {
           router.push("/login");
         }
@@ -97,7 +99,7 @@ export default function DashboardLayout({
               <h1 className="text-base font-black text-white leading-tight tracking-tight">TeamHub</h1>
               <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 text-[9px] font-bold rounded uppercase border border-emerald-500/30">PG</span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium truncate">Riddhi Residency</p>
+            <p className="text-[11px] text-slate-400 font-medium truncate">{propertyName || "Your Property"}</p>
           </div>
         </div>
 
@@ -166,7 +168,7 @@ export default function DashboardLayout({
           </div>
           <div>
             <span className="text-sm font-black text-white tracking-tight block leading-tight">TeamHub PG</span>
-            <span className="text-[10px] text-emerald-400 font-semibold">Riddhi Residency</span>
+            <span className="text-[10px] text-emerald-400 font-semibold">{propertyName || "Your Property"}</span>
           </div>
         </div>
 
@@ -216,7 +218,7 @@ export default function DashboardLayout({
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-semibold text-slate-300">
               <Building2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Riddhi Residency</span>
+              <span>{propertyName || "Your Property"}</span>
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             </div>
 

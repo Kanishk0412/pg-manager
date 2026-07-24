@@ -44,6 +44,10 @@ export default function NewRoomPage() {
   const [customFloorPrefix, setCustomFloorPrefix] = useState("");
   const [showAddCustomFloor, setShowAddCustomFloor] = useState(false);
 
+  // CSV Import State
+  const [csvRows, setCsvRows] = useState<Record<string, string>[]>([]);
+  const [csvFileName, setCsvFileName] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -115,6 +119,79 @@ export default function NewRoomPage() {
 
       setSuccess(`Successfully generated ${json.data.count} rooms and beds!`);
       setTimeout(() => router.push("/rooms"), 1200);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const CSV_HEADERS = ["room_number", "floor", "sharing_type", "capacity", "rent_per_bed", "meter_number"];
+
+  const downloadTemplate = () => {
+    const sample = [
+      CSV_HEADERS.join(","),
+      "G01,Ground,Single,1,8000,MTR-G01",
+      "101,1st Floor,Double,2,6000,MTR-101",
+      "201,2nd Floor,Triple,3,5000,MTR-201",
+    ].join("\n");
+    const blob = new Blob([sample], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "rooms-template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCsvFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setError("");
+    setSuccess("");
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCsvFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result || "");
+      const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      if (lines.length < 2) {
+        setError("CSV appears empty. Include a header row plus at least one room.");
+        setCsvRows([]);
+        return;
+      }
+      const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+      const rows = lines.slice(1).map((line) => {
+        const cells = line.split(",");
+        const row: Record<string, string> = {};
+        headers.forEach((h, i) => (row[h] = (cells[i] || "").trim()));
+        return row;
+      });
+      setCsvRows(rows);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleCsvImport = async () => {
+    if (csvRows.length === 0) {
+      setError("Choose a CSV file first.");
+      return;
+    }
+    setError("");
+    setSuccess("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/v1/rooms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "csv_import", rows: csvRows }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error?.message || "Failed to import rooms");
+      }
+      const skippedNote = json.data.skipped ? ` (${json.data.skipped} duplicates/invalid skipped)` : "";
+      setSuccess(`Imported ${json.data.count} rooms${skippedNote}!`);
+      setTimeout(() => router.push("/rooms"), 1400);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -452,22 +529,71 @@ export default function NewRoomPage() {
 
       {/* Tab 3: CSV Import */}
       {activeTab === "csv" && (
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 text-center space-y-4 py-12">
-          <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto text-emerald-400">
-            <Upload className="w-8 h-8" />
+        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 space-y-5">
+          <div className="text-center space-y-3">
+            <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto text-emerald-400">
+              <Upload className="w-8 h-8" />
+            </div>
+            <h2 className="text-base font-bold text-white">Import Rooms via CSV</h2>
+            <p className="text-xs text-slate-400 max-w-md mx-auto">
+              Upload a CSV with columns:{" "}
+              <code className="text-emerald-400">room_number, floor, sharing_type, capacity, rent_per_bed, meter_number</code>.
+            </p>
           </div>
-          <h2 className="text-base font-bold text-white">Import Rooms via CSV</h2>
-          <p className="text-xs text-slate-400 max-w-md mx-auto">
-            Upload a standard CSV file with columns: <code className="text-emerald-400">room_number, floor, sharing_type, capacity, rent_per_bed, meter_number</code>.
-          </p>
-          <div className="pt-4">
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
-              onClick={() => alert("CSV Import demo template ready. Use Quick Generator or Single Add for instant test.")}
+              type="button"
+              onClick={downloadTemplate}
               className="bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2.5 px-5 rounded-xl text-xs border border-slate-700"
             >
               Download CSV Template
             </button>
+
+            <label className="bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2.5 px-5 rounded-xl text-xs border border-slate-700 cursor-pointer">
+              {csvFileName || "Choose CSV File"}
+              <input type="file" accept=".csv,text/csv" onChange={handleCsvFile} className="hidden" />
+            </label>
           </div>
+
+          {csvRows.length > 0 && (
+            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+              <p className="text-xs text-slate-300">
+                <span className="font-bold text-emerald-400">{csvRows.length}</span> rooms parsed from{" "}
+                <span className="font-mono">{csvFileName}</span>. Preview (first 5):
+              </p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px] text-left text-slate-400">
+                  <thead className="text-slate-500 uppercase">
+                    <tr>
+                      {CSV_HEADERS.map((h) => (
+                        <th key={h} className="py-1.5 pr-4 whitespace-nowrap">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {csvRows.slice(0, 5).map((row, i) => (
+                      <tr key={i} className="border-t border-slate-800/60">
+                        {CSV_HEADERS.map((h) => (
+                          <td key={h} className="py-1.5 pr-4 whitespace-nowrap text-slate-300">{row[h] || "—"}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={handleCsvImport}
+                  disabled={loading}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition-all disabled:opacity-60"
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>{loading ? "Importing..." : `Import ${csvRows.length} Rooms`}</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
