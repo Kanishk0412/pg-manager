@@ -31,40 +31,45 @@ export async function POST(request: Request) {
     today.setHours(0, 0, 0, 0);
     const isFutureBooking = moveIn > today;
 
-    // Overlap validation: Check for any active/reserved allotments on this bed
-    // that overlap with the requested period
+    // Overlap validation (PRD 8.6): two date ranges [aStart,aEnd] and
+    // [bStart,bEnd] overlap iff aStart <= bEnd AND bStart <= aEnd. Open-ended
+    // bookings (no expected_move_out) are treated as running to +infinity.
+    // We fetch ALL live bookings on the bed and check each, rather than relying
+    // on a single findFirst which can silently pick the wrong row.
     const moveOut = expectedMoveOutDate ? new Date(expectedMoveOutDate) : null;
-    const overlappingAllotment = await db.allotment.findFirst({
+    const reqStart = moveIn.getTime();
+    const reqEnd = moveOut ? moveOut.getTime() : Number.POSITIVE_INFINITY;
+
+    const bedBookings = await db.allotment.findMany({
       where: {
         bed_id: bedId,
         status: { in: ["active", "reserved", "on_notice"] },
         deleted_at: null,
-        // Overlap condition: existing.move_in <= requested.move_out AND existing.expected_move_out >= requested.move_in
-        // If no expected_move_out, treat as open-ended (always overlaps with future)
-        move_in_date: moveOut ? { lte: moveOut } : undefined,
       },
       include: { tenant: true },
     });
 
-    if (overlappingAllotment) {
-      // Additional check: if the overlapping allotment has an expected_move_out and it's before our move_in, no overlap
-      const existingEnd = overlappingAllotment.expected_move_out_date || overlappingAllotment.actual_move_out_date;
-      const hasRealOverlap = !existingEnd || existingEnd >= moveIn;
+    const conflict = bedBookings.find((existing) => {
+      const exStart = existing.move_in_date.getTime();
+      const exEndDate = existing.expected_move_out_date || existing.actual_move_out_date;
+      const exEnd = exEndDate ? exEndDate.getTime() : Number.POSITIVE_INFINITY;
+      return exStart <= reqEnd && reqStart <= exEnd;
+    });
 
-      if (hasRealOverlap) {
-        const tenantName = overlappingAllotment.tenant?.full_name || "another tenant";
-        return NextResponse.json(
-          {
-            success: false,
-            error: {
-              code: "BOOKING_OVERLAP",
-              message: `Bed ${bed.room.room_number}-${bed.bed_label} has an overlapping ${overlappingAllotment.status} booking by ${tenantName} (${overlappingAllotment.move_in_date.toISOString().split("T")[0]} → ${existingEnd ? existingEnd.toISOString().split("T")[0] : "open-ended"})`,
-              field: "bed_id",
-            },
+    if (conflict) {
+      const existingEnd = conflict.expected_move_out_date || conflict.actual_move_out_date;
+      const tenantName = conflict.tenant?.full_name || "another tenant";
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "BOOKING_OVERLAP",
+            message: `Bed ${bed.room.room_number}-${bed.bed_label} has an overlapping ${conflict.status} booking by ${tenantName} (${conflict.move_in_date.toISOString().split("T")[0]} → ${existingEnd ? existingEnd.toISOString().split("T")[0] : "open-ended"})`,
+            field: "bed_id",
           },
-          { status: 400 }
-        );
-      }
+        },
+        { status: 400 }
+      );
     }
 
     // For immediate bookings, also check bed status
