@@ -322,13 +322,13 @@ export default function BookingsCalendarPage() {
 
       {/* Controls Bar */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Month navigation */}
           <div className="flex items-center gap-2">
             <button onClick={prevMonth} className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-400 hover:text-white transition-all">
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <div className="px-5 py-2 bg-slate-800/60 border border-slate-700 rounded-xl min-w-[200px] text-center">
+            <div className="px-5 py-2 bg-slate-800/60 border border-slate-700 rounded-xl min-w-[160px] sm:min-w-[200px] text-center">
               <span className="text-sm font-bold text-white">{monthName}</span>
             </div>
             <button onClick={nextMonth} className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-400 hover:text-white transition-all">
@@ -340,12 +340,12 @@ export default function BookingsCalendarPage() {
           </div>
 
           {/* Status filter */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1 scrollbar-none whitespace-nowrap">
             {["all", "active", "reserved", "on_notice", "vacated"].map((s) => (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase transition-all flex-none ${
                   statusFilter === s
                     ? "bg-emerald-600/20 text-emerald-400 border border-emerald-500/30"
                     : "text-slate-500 hover:text-slate-300 border border-transparent hover:border-slate-700"
@@ -357,9 +357,9 @@ export default function BookingsCalendarPage() {
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 overflow-x-auto max-w-full pb-1 scrollbar-none whitespace-nowrap">
             {Object.entries(STATUS_COLORS).filter(([k]) => k !== "cancelled").map(([status, colors]) => (
-              <div key={status} className="flex items-center gap-1.5">
+              <div key={status} className="flex items-center gap-1.5 flex-none">
                 <div className={`w-2.5 h-2.5 rounded-full ${colors.bar}`} />
                 <span className="text-[10px] text-slate-500 uppercase font-medium">
                   {status === "on_notice" ? "Notice" : status}
@@ -370,101 +370,102 @@ export default function BookingsCalendarPage() {
         </div>
       </div>
 
-      {/* Calendar Grid */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden">
-        {/* Day headers */}
-        <div className="flex border-b border-slate-800">
-          <div className="w-28 shrink-0 px-3 py-2.5 bg-slate-950/60 border-r border-slate-800">
-            <span className="text-[10px] text-slate-500 font-bold uppercase">Room / Bed</span>
-          </div>
-          <div className="flex-1 flex">
-            {days.map((d) => {
-              const dayDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), d);
-              const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
-              const isToday = isCurrentMonth && d === todayDay;
-              return (
-                <div
-                  key={d}
-                  className={`flex-1 py-2.5 text-center border-r border-slate-800/50 last:border-r-0 ${
-                    isToday ? "bg-emerald-500/10" : isWeekend ? "bg-slate-950/40" : ""
-                  }`}
-                >
-                  <span className={`text-[10px] font-bold ${isToday ? "text-emerald-400" : isWeekend ? "text-slate-600" : "text-slate-500"}`}>
-                    {d}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Booking rows */}
-        {groupedByBed.length === 0 ? (
-          <div className="py-16 text-center text-slate-500">
-            <Calendar className="w-10 h-10 mx-auto mb-3 text-slate-600" />
-            <p className="text-sm font-medium">No bookings found for this month</p>
-            <p className="text-xs text-slate-600 mt-1">Try navigating to a different month or changing the filter</p>
-          </div>
-        ) : (
-          groupedByBed.map(([key, group]) => (
-            <div key={key} className="flex border-b border-slate-800/50 last:border-b-0 hover:bg-slate-800/20 transition-colors">
-              {/* Room label */}
-              <div className="w-28 shrink-0 px-3 py-3 bg-slate-950/30 border-r border-slate-800 flex items-center gap-1.5">
-                <Building className="w-3 h-3 text-slate-600" />
-                <span className="text-xs font-bold text-slate-300">{group.room}-{group.bed}</span>
-              </div>
-
-              {/* Timeline bar area */}
-              <div className="flex-1 relative py-1.5" style={{ minHeight: "36px" }}>
-                {/* Today line */}
-                {isCurrentMonth && (
-                  <div
-                    className="absolute top-0 bottom-0 w-px bg-emerald-500/40 z-10"
-                    style={{ left: `${((todayDay - 0.5) / daysInMonth) * 100}%` }}
-                  />
-                )}
-
-                {/* Allotment bars */}
-                {group.allotments.map((a) => {
-                  const barStyle = getBarStyle(a);
-                  const colors = STATUS_COLORS[a.status] || STATUS_COLORS.active;
-                  return (
-                    <button
-                      key={a.id}
-                      onClick={() => {
-                        setSelectedAllotment(a);
-                        setDetailOpen(true);
-                        setActionError("");
-                        setActionSuccess("");
-                        setSettlement(null);
-                      }}
-                      className={`absolute top-1.5 h-6 rounded-md ${barStyle.className} opacity-80 hover:opacity-100 transition-all cursor-pointer flex items-center px-1.5 overflow-hidden`}
-                      style={{ left: barStyle.left, width: barStyle.width }}
-                      title={`${a.tenant.full_name} — ${a.status}`}
-                    >
-                      <span className="text-[9px] font-bold text-white truncate drop-shadow-sm">
-                        {a.tenant.full_name}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+      {/* Calendar Grid with Touch-Scrollable Container */}
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-x-auto shadow-xl">
+        <div className="min-w-[760px]">
+          {/* Day headers */}
+          <div className="flex border-b border-slate-800">
+            <div className="w-28 shrink-0 px-3 py-2.5 bg-slate-950/60 border-r border-slate-800">
+              <span className="text-[10px] text-slate-500 font-bold uppercase">Room / Bed</span>
             </div>
-          ))
-        )}
+            <div className="flex-1 flex">
+              {days.map((d) => {
+                const dayDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), d);
+                const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
+                const isToday = isCurrentMonth && d === todayDay;
+                return (
+                  <div
+                    key={d}
+                    className={`flex-1 py-2.5 text-center border-r border-slate-800/50 last:border-r-0 ${
+                      isToday ? "bg-emerald-500/10" : isWeekend ? "bg-slate-950/40" : ""
+                    }`}
+                  >
+                    <span className={`text-[10px] font-bold ${isToday ? "text-emerald-400" : isWeekend ? "text-slate-600" : "text-slate-500"}`}>
+                      {d}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Booking rows */}
+          {groupedByBed.length === 0 ? (
+            <div className="py-16 text-center text-slate-500">
+              <Calendar className="w-10 h-10 mx-auto mb-3 text-slate-600" />
+              <p className="text-sm font-medium">No bookings found for this month</p>
+              <p className="text-xs text-slate-600 mt-1">Try navigating to a different month or changing the filter</p>
+            </div>
+          ) : (
+            groupedByBed.map(([key, group]) => (
+              <div key={key} className="flex border-b border-slate-800/50 last:border-b-0 hover:bg-slate-800/20 transition-colors">
+                {/* Room label */}
+                <div className="w-28 shrink-0 px-3 py-3 bg-slate-950/30 border-r border-slate-800 flex items-center gap-1.5">
+                  <Building className="w-3 h-3 text-slate-600" />
+                  <span className="text-xs font-bold text-slate-300">{group.room}-{group.bed}</span>
+                </div>
+
+                {/* Timeline bar area */}
+                <div className="flex-1 relative py-1.5" style={{ minHeight: "36px" }}>
+                  {/* Today line */}
+                  {isCurrentMonth && (
+                    <div
+                      className="absolute top-0 bottom-0 w-px bg-emerald-500/40 z-10"
+                      style={{ left: `${((todayDay - 0.5) / daysInMonth) * 100}%` }}
+                    />
+                  )}
+
+                  {/* Allotment bars */}
+                  {group.allotments.map((a) => {
+                    const barStyle = getBarStyle(a);
+                    return (
+                      <button
+                        key={a.id}
+                        onClick={() => {
+                          setSelectedAllotment(a);
+                          setDetailOpen(true);
+                          setActionError("");
+                          setActionSuccess("");
+                          setSettlement(null);
+                        }}
+                        className={`absolute top-1.5 h-6 rounded-md ${barStyle.className} opacity-80 hover:opacity-100 transition-all cursor-pointer flex items-center px-1.5 overflow-hidden`}
+                        style={{ left: barStyle.left, width: barStyle.width }}
+                        title={`${a.tenant.full_name} — ${a.status}`}
+                      >
+                        <span className="text-[9px] font-bold text-white truncate drop-shadow-sm">
+                          {a.tenant.full_name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       {/* Stats summary */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: "Active Stays", count: allotments.filter((a) => a.status === "active").length, color: "emerald" },
           { label: "Reserved", count: allotments.filter((a) => a.status === "reserved").length, color: "amber" },
           { label: "On Notice", count: allotments.filter((a) => a.status === "on_notice").length, color: "orange" },
           { label: "Vacated", count: allotments.filter((a) => a.status === "vacated").length, color: "slate" },
         ].map((s) => (
-          <div key={s.label} className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 text-center">
-            <p className={`text-2xl font-black text-${s.color}-400`}>{s.count}</p>
-            <p className="text-[11px] text-slate-500 font-semibold uppercase mt-1">{s.label}</p>
+          <div key={s.label} className="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5 text-center">
+            <p className={`text-xl sm:text-2xl font-black text-${s.color}-400`}>{s.count}</p>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 font-semibold uppercase mt-1">{s.label}</p>
           </div>
         ))}
       </div>

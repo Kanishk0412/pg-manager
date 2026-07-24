@@ -209,44 +209,44 @@ export default function SettingsPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-bold">
+      <div className="flex items-center gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-bold overflow-x-auto max-w-full whitespace-nowrap scrollbar-none">
         <button
           onClick={() => setActiveTab("branding")}
-          className={`flex-1 py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all ${
+          className={`flex-none py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all ${
             activeTab === "branding" ? "bg-emerald-600 text-white shadow" : "text-slate-400 hover:text-white"
           }`}
         >
-          <Building className="w-4 h-4" />
+          <Building className="w-4 h-4 shrink-0" />
           <span>Branding & Property Info</span>
         </button>
 
         <button
           onClick={() => setActiveTab("billing")}
-          className={`flex-1 py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all ${
+          className={`flex-none py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all ${
             activeTab === "billing" ? "bg-emerald-600 text-white shadow" : "text-slate-400 hover:text-white"
           }`}
         >
-          <Zap className="w-4 h-4" />
+          <Zap className="w-4 h-4 shrink-0" />
           <span>Billing & Electricity Config</span>
         </button>
 
         <button
           onClick={() => setActiveTab("floors")}
-          className={`flex-1 py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all ${
+          className={`flex-none py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all ${
             activeTab === "floors" ? "bg-emerald-600 text-white shadow" : "text-slate-400 hover:text-white"
           }`}
         >
-          <Layers className="w-4 h-4" />
+          <Layers className="w-4 h-4 shrink-0" />
           <span>Floors & Structure ({floorLabels.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab("charges")}
-          className={`flex-1 py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all ${
+          className={`flex-none py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all ${
             activeTab === "charges" ? "bg-emerald-600 text-white shadow" : "text-slate-400 hover:text-white"
           }`}
         >
-          <Tag className="w-4 h-4" />
+          <Tag className="w-4 h-4 shrink-0" />
           <span>Charge Heads Manager ({chargeHeads.length})</span>
         </button>
       </div>

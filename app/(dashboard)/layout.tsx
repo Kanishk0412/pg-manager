@@ -158,8 +158,8 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-[#070b14] flex flex-col md:flex-row">
-      {/* Mobile App Top Header */}
-      <header className="md:hidden sticky top-0 z-40 bg-[#070b14]/95 backdrop-blur-xl border-b border-slate-800/80 px-4 py-3 flex items-center justify-between shadow-lg">
+      {/* Mobile App Top Header with Mobile Notch Safe Area Padding */}
+      <header className="md:hidden sticky top-0 z-40 bg-[#070b14]/95 backdrop-blur-xl border-b border-slate-800/80 px-4 pt-[calc(env(safe-area-inset-top,16px)+8px)] pb-3 flex items-center justify-between shadow-lg">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-gradient-to-tr from-emerald-400 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md">
             <Building2 className="w-4 h-4" />
@@ -173,10 +173,10 @@ export default function DashboardLayout({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-slate-300 hover:text-white bg-slate-900 rounded-xl border border-slate-800 transition-all"
+            className="p-2 text-slate-300 hover:text-white bg-slate-900 rounded-xl border border-slate-800 transition-all shadow-md active:scale-95"
             aria-label="Toggle Navigation Drawer"
           >
-            {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            {mobileMenuOpen ? <X className="w-5 h-5 text-emerald-400" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </header>
@@ -185,7 +185,7 @@ export default function DashboardLayout({
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-          <aside className="relative w-72 bg-[#090d16] border-r border-slate-800 h-full z-10">
+          <aside className="relative w-72 bg-[#090d16] border-r border-slate-800 h-full z-10 pt-[calc(env(safe-area-inset-top,16px)+8px)]">
             <SidebarContent />
           </aside>
         </div>
