@@ -59,8 +59,8 @@ export default function TenantDetailPage({ params }: { params: Promise<{ id: str
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/tenants"
             className="p-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-slate-400 hover:text-white transition-all"
@@ -97,45 +97,45 @@ export default function TenantDetailPage({ params }: { params: Promise<{ id: str
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-bold">
+      {/* Tabs — 2x2 grid on mobile, single row on desktop (prevents overflow/clipping) */}
+      <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-bold md:flex md:items-center">
         <button
           onClick={() => setActiveTab("profile")}
-          className={`flex-1 py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all ${
+          className={`w-full md:flex-1 py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 text-center transition-all ${
             activeTab === "profile" ? "bg-emerald-600 text-white shadow" : "text-slate-400 hover:text-white"
           }`}
         >
-          <User className="w-4 h-4" />
+          <User className="w-4 h-4 shrink-0" />
           <span>Profile Details</span>
         </button>
 
         <button
           onClick={() => setActiveTab("stay")}
-          className={`flex-1 py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all ${
+          className={`w-full md:flex-1 py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 text-center transition-all ${
             activeTab === "stay" ? "bg-emerald-600 text-white shadow" : "text-slate-400 hover:text-white"
           }`}
         >
-          <History className="w-4 h-4" />
+          <History className="w-4 h-4 shrink-0" />
           <span>Stay History ({tenant.allotments?.length || 0})</span>
         </button>
 
         <button
           onClick={() => setActiveTab("invoices")}
-          className={`flex-1 py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all ${
+          className={`w-full md:flex-1 py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 text-center transition-all ${
             activeTab === "invoices" ? "bg-emerald-600 text-white shadow" : "text-slate-400 hover:text-white"
           }`}
         >
-          <FileText className="w-4 h-4" />
+          <FileText className="w-4 h-4 shrink-0" />
           <span>Invoices ({tenant.invoices?.length || 0})</span>
         </button>
 
         <button
           onClick={() => setActiveTab("payments")}
-          className={`flex-1 py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all ${
+          className={`w-full md:flex-1 py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 text-center transition-all ${
             activeTab === "payments" ? "bg-emerald-600 text-white shadow" : "text-slate-400 hover:text-white"
           }`}
         >
-          <CreditCard className="w-4 h-4" />
+          <CreditCard className="w-4 h-4 shrink-0" />
           <span>Payments ({tenant.payments?.length || 0})</span>
         </button>
       </div>
